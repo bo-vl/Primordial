@@ -1,26 +1,10 @@
-local Remotes = {
-    "TeleportDetect",
-    "CHECKER_1",
-    "CHECKER",
-    "GUI_CHECK",
-    "OneMoreTime",
-    "checkingSPEED",
-    "BANREMOTE",
-    "PERMAIDBAN",
-    "KICKREMOTE",
-    "BR_KICKPC",
-    "BR_KICKMOBILE"
-}
+-- Define the main function to be called from the main script
+local function main(info)
+    -- Now you can use 'info' table to access the information passed from the main script
+    print("Place ID:", info.PlaceId)
+    print("Place Name:", info.PlaceName)
+    -- Use other information as needed
+end
 
-local gamerawmetatable = getrawmetatable(game)
-setreadonly(gamerawmetatable, false)
-
-local oldnamecall = gamerawmetatable.__namecall
-gamerawmetatable.__namecall = newcclosure(function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
-    if method == "FireServer" and table.find(Remotes, tostring(args[1])) then
-        return
-    end
-    return oldnamecall(self, ...)
-end)
+-- Call main function with the passed information
+main(...)
