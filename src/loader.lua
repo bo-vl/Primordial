@@ -23,12 +23,7 @@ for placeName, placeIds in pairs(Places) do
 end
 
 if supported then
-    print("Game is supported by HydraWare.")
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Bovanlaarhoven/Hydraware/main/src/main.lua"))()
-    if not isfolder("HydraWare") then
-        makefolder("HydraWare")
-    end
-    writefile("HydraWare/Support.txt", gameid)
 else
     game:GetService("Players").LocalPlayer:Kick(gameid .. " is not supported by HydraWare.")
 end

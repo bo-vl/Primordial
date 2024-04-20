@@ -1,38 +1,59 @@
 repeat wait() until game:IsLoaded()
 
-local utils = 'https://raw.githubusercontent.com/Bovanlaarhoven/Hydraware/main/src/utils/'
 local plrs, plr = game:GetService("Players"), game:GetService("Players").LocalPlayer
 local Camera = game:GetService("Workspace").CurrentCamera
 local GetMouse = plr:GetMouse()
-local Hitbones = {}
+local MainEvent = game:GetService("ReplicatedStorage").MainEvent
+local mt = getrawmetatable(game)
+local backupnamecall = mt.__namecall
+local toolConnection = {nil, nil}
+local shootArgument = nil
+
 
 local Settings = {
-    SilentAim = {
-        Enabled = true,
-        HitBone = "Head",
-        FOV = 100,
-        VisibleCheck = false
-    },
+    legit = {
+        SilentAim = {
+            Enabled = true,
+            HitBone = "HumanoidRootPart",
+            AimMethod = "Visible",
+            FOV = 1000,
+        },
+        Predication = {
+            Enabled = false,
+            Resolver = false,
+            ResolverMethod = "HumanoidMoveDirection",
+
+        }
+    }
+    Rage = {
+        Misc = {
+            AutoShoot = true,
+            AutoReload = true,
+        },
+    }
+    Visuals = {
+        BulletTracers = {
+            Enabled = true,
+            Color = Color3.fromRGB(255, 255, 255),
+            Thickness = 1,
+        }
+    }
 }
 
-for _, v in pairs(plr.Character:GetChildren()) do
-    if v:IsA("BasePart") then
-        table.insert(Hitbones, v.Name)
-    end
+local IsGun = function(tool)
+    return tool:IsA("Tool")
 end
 
 local OnScreen = function(pos)
     local vector, onScreen = Camera:WorldToScreenPoint(pos)
-    return vector, onScreen
+    return onScreen
 end
 
 local InFov = function(target)
     local vector, onScreen = OnScreen(target.Position)
     if onScreen then
         local distance = (Vector2.new(vector.X, vector.Y) - Vector2.new(GetMouse.X, GetMouse.Y)).Magnitude
-        if distance <= Settings.SilentAim.FOV then
-            return true
-        end
+        return distance <= Settings.legit.SilentAim.FOV
     end
     return false
 end
@@ -40,28 +61,33 @@ end
 local IsVisible = function(target)
     local ray = Ray.new(Camera.CFrame.Position, (target.Position - Camera.CFrame.Position).Unit * 3000)
     local part = workspace:FindPartOnRayWithIgnoreList(ray, {Camera, plr.Character})
-    if part == target then
-        return true
-    end
-    return false
+    return part == target
 end
 
 local GetClosestPlayer = function()
-    local closest, distance = nil, math.huge
-    for _, v in pairs(plrs:GetPlayers()) do
-        if v ~= plr and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character:FindFirstChild("Humanoid").Health > 0 then
-            local vector, onScreen = OnScreen(v.Character[Settings.SilentAim.HitBone].Position)
-            if vector and onScreen then
-                local magnitude = (Vector2.new(vector.X, vector.Y) - Vector2.new(GetMouse.X, GetMouse.Y)).Magnitude
-                if magnitude < distance and magnitude <= Settings.SilentAim.FOV then
-                    if Settings.SilentAim.VisibleCheck then
-                        if IsVisible(v.Character[Settings.SilentAim.HitBone]) then
-                            closest = v
-                            distance = magnitude
+    local closest, minAngle = nil, math.huge
+    local playerPosition = Camera.CFrame.Position
+    local playerLookVector = (Camera.CFrame * CFrame.new(0, 0, -1)).lookVector
+
+    for _, player in pairs(plrs:GetPlayers()) do
+        if player ~= plr and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local hitBone = player.Character[Settings.legit.SilentAim.HitBone]
+            if hitBone then
+                local targetPosition = hitBone.Position
+                local directionToTarget = (targetPosition - playerPosition).unit
+                local angleToTarget = math.acos(playerLookVector:Dot(directionToTarget))
+
+                if angleToTarget <= math.rad(Settings.legit.SilentAim.FOV / 2) then
+                    if angleToTarget < minAngle then
+                        if Settings.legit.SilentAim.VisibleCheck == "Visible" then
+                            if IsVisible(hitBone) then
+                                minAngle = angleToTarget
+                                closest = player
+                            end
+                        else
+                            minAngle = angleToTarget
+                            closest = player
                         end
-                    else
-                        closest = v
-                        distance = magnitude
                     end
                 end
             end
@@ -70,20 +96,36 @@ local GetClosestPlayer = function()
     return closest
 end
 
-local old
-old = hookmetamethod(game, "__namecall", function(self, ...)
-    if tostring(self.Name) == "MainEvent" and getnamecallmethod() == "FireServer" then
-        local args = {...}
-        if args[1] == "UpdateMousePos" then
-            local target = GetClosestPlayer()
-            if target then
-                local hitpart = target.Character[Settings.SilentAim.HitBone]
-                if hitpart then
-                    args[2] = hitpart.Position
-                    return old(self, unpack(args))
+plr.Character.ChildAdded:Connect(function(child)
+    if IsGun(child) then
+        if toolConnection[1] == nil then
+            toolConnection[1] = child 
+        end
+        if toolConnection[1] ~= child and toolConnection[2] ~= nil then 
+            toolConnection[2]:Disconnect()
+            toolConnection[1] = child
+        end
+
+        toolConnection[2] = child.Activated:Connect(function()
+            if Settings.SilentAim.Enabled then
+                local target = GetClosestPlayer()
+                if target then
+                    if shootArgument then
+                        MainEvent:FireServer(shootArgument, target.Character[Settings.SilentAim.HitBone].Position)
+                    end
                 end
             end
-        end
+        end)
     end
-    return old(self, ...)
+end)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if typeof(args[2]) == "Vector3" then
+        shootArgument = args[1]
+    end
+
+    return backupnamecall(self, ...)
 end)
