@@ -12,8 +12,10 @@ local HitBones       = {}
 local Client         = Players.LocalPlayer
 local Camera         = Workspace.CurrentCamera
 local Remote         = Storage:FindFirstChild('MainEvent')
+local ping           = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]
 local Fov            = Drawing.new("Circle")
 local Desync         = {OldPos = nil, newPos = nil}
+local CurrentPing    = {ping = 0}
 
 
 for _, v in pairs(Client.Character:GetChildren()) do if v:IsA("BasePart") then table.insert(HitBones, v.Name) end end
@@ -61,7 +63,8 @@ local Settings = {
     },
     Prediction = {
         Enabled = false,
-        Prediction = 0.129,
+        AutoPrediction = false,
+        Prediction = 13.4,
         Resolver = false,
         ResolveMethod = "Velocity"
     },
@@ -132,9 +135,18 @@ Predication:AddToggle('Prediction', {
     end
 })
 
-Predication:AddSlider('Prediction', {
+Predication:AddToggle('AutoPrediction', {
+    Text = 'Auto Prediction',
+    Default = false,
+    Tooltip = 'Auto Prediction',
+    Callback = function(Value)
+        Settings.Prediction.AutoPrediction = Value
+    end
+})
+
+Predication:AddSlider('PredictionAmound', {
     Text = 'Prediction Amound',
-    Default = 0.13,
+    Default = 13,
     Min = 0,
     Max = 100,
     Rounding = 1,
@@ -188,7 +200,7 @@ local GetClosestPlayer = function(Radius)
             Distance = Magnitude
             ClosestPlayer = v
         end
-    end
+    end 
     return ClosestPlayer
 end
 
@@ -200,26 +212,67 @@ end
 RunService.RenderStepped:Connect(Update)
 
 RunService.Heartbeat:Connect(function()
-    if not Settings.Desync.Enabled then return end
-    Desync["OldPos"] = Client.Character.HumanoidRootPart.CFrame
+    CurrentPing = tonumber(string.format("%.3f", ping:GetValue()))
+    if Settings.Desync.Enabled then 
+        Desync["OldPos"] = Client.Character.HumanoidRootPart.CFrame
 
-    Desync["newPos"] = CFrame.new(
-        Client.Character.HumanoidRootPart.Position + Vector3.new(
-            math.random(Settings.Desync.X.Min, Settings.Desync.X.Max),
-            math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max),
-            math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max)
+        Desync["newPos"] = CFrame.new(
+            Client.Character.HumanoidRootPart.Position + Vector3.new(
+                math.random(Settings.Desync.X.Min, Settings.Desync.X.Max),
+                math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max),
+                math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max)
+            )
+        ) * CFrame.Angles(
+            math.rad(math.random(Settings.Desync.X.Min, Settings.Desync.X.Max)),
+            math.rad(math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max)),
+            math.rad(math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max))
         )
-    ) * CFrame.Angles(
-        math.rad(math.random(Settings.Desync.X.Min, Settings.Desync.X.Max)),
-        math.rad(math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max)),
-        math.rad(math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max))
-    )
+    
+        Client.Character.HumanoidRootPart.CFrame = Desync["newPos"]
+    
+        RunService.RenderStepped:Wait()
+    
+        Client.Character.HumanoidRootPart.CFrame = Desync["OldPos"]
+    end
 
-    Client.Character.HumanoidRootPart.CFrame = Desync["newPos"]
+    if Settings.Prediction.AutoPrediction then
+        if CurrentPing < 20 then
+            if Settings.Prediction.Prediction > 15.7 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 15.7 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 30 then
+            if Settings.Prediction.Prediction > 15.5 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 15.5 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 40 then
+            if Settings.Prediction.Prediction > 14.5 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 14.5 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 50 then
+            if Settings.Prediction.Prediction > 14.3 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 14.3 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 60 then
+            if Settings.Prediction.Prediction > 14 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 14 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 70 then
+            if Settings.Prediction.Prediction > 13.6 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 13.6 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 80 then
+            if Settings.Prediction.Prediction > 13.3 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 13.3 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 90 then
+            if Settings.Prediction.Prediction > 13 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 13 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 105 then
+            if Settings.Prediction.Prediction > 12.7 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 12.7 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        elseif CurrentPing < 110 then
+            if Settings.Prediction.Prediction > 12.4 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 12.4 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        else
+            if Settings.Prediction.Prediction > 12 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
+            if Settings.Prediction.Prediction < 12 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        end
+        wait(.2)
+    end
 
-    RunService.RenderStepped:Wait()
-
-    Client.Character.HumanoidRootPart.CFrame = Desync["OldPos"]
 end)
 
 local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...)
@@ -228,13 +281,16 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
     if (not checkcaller() and Settings.SilentAim.Enabled and Target and Method == 'FireServer' and self == Remote and Arguments[1] == 'UpdateMousePos') then 
         if Settings.Prediction.Enabled then
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
-        elseif Settings.Prediction.Resolver and Settings.Prediction.ResolveMethod == "Custom Prediction" or Settings.Prediction.Enabled then
-            Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + (Target.Character[Settings.SilentAim.HitBone].Velocity * Settings.Prediction.Prediction)
-        elseif Settings.Prediction.Resolver and Settings.Prediction.Enabled and Settings.Prediction.ResolveMethod == "Velocity" then
-            local TargetVelocity = Target.Character[Settings.SilentAim.HitBone].Velocity
-            Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Vector3.new(TargetVelocity.X * Settings.Prediction.Prediction, TargetVelocity.Y * Settings.Prediction.Prediction, TargetVelocity.Z * Settings.Prediction.Prediction)
-        elseif Settings.Prediction.Resolver and Settings.Prediction.Enabled and Settings.Prediction.ResolveMethod == "HumanoidMoveDirection" then
-            Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + (Target.Character[Settings.SilentAim.HitBone].Humanoid.MoveDirection * Settings.Prediction.Prediction)
+        elseif Settings.Prediction.Enabled or Settings.Prediction.AutoPrediction and Settings.Prediction.Resolver then
+            if Settings.Prediction.ResolveMethod == "Custom Prediction" then
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character[Settings.SilentAim.HitBone].Velocity * Settings.Prediction.Prediction
+            elseif Settings.Prediction.ResolveMethod == "Velocity" then
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character[Settings.SilentAim.HitBone].Velocity * (Settings.Prediction.Prediction / 100)
+            elseif Settings.Prediction.ResolveMethod == "HumanoidMoveDirection" then
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character[Settings.SilentAim.HitBone].Humanoid.MoveDirection * (Settings.Prediction.Prediction / 100)
+            end
+        else
+            Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
         end
         return namecall(self, unpack(Arguments))
     end
