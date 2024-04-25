@@ -66,10 +66,12 @@ local Settings = {
         AutoPrediction = false,
         Prediction = 13.4,
         Resolver = false,
-        ResolveMethod = "Velocity"
+        ResolveMethod = {"Custom Prediction", "Velocity", "HumanoidMoveDirection"}
     },
     Desync = {
         Enabled = false,
+        DesyncMode = {"Static", "Dynamic", "Jitter", "Spin"},
+        Range = 1,
         X = {Min = -180, Max = 180},
         Y = {Min = -180, Max = 180},
         Z = {Min = -180, Max = 180}
@@ -102,6 +104,29 @@ AntiAim:AddToggle('Desync', {
     Tooltip = 'Desync',
     Callback = function(Value)
         Settings.Desync.Enabled = Value
+    end
+})
+
+AntiAim:AddDropdown('AntiAim', {
+    Values = Settings.Desync.DesyncMode,
+    Default = 0,
+    Multi = false, 
+    Text = 'Desync Mode',
+    Tooltip = 'Desync',
+    Callback = function(Value)
+        Settings.Desync.DesyncMode = Value
+    end
+})
+
+AntiAim:AddSlider('AntiAimRange', {
+    Text = 'Desync Range',
+    Default = 1,
+    Min = 1,
+    Max = 100,
+    Rounding = 0,
+    Compact = false,
+    Callback = function(Value)
+        Settings.Desync.Range = Value
     end
 })
 
@@ -216,17 +241,39 @@ RunService.Heartbeat:Connect(function()
     if Settings.Desync.Enabled then 
         Desync["OldPos"] = Client.Character.HumanoidRootPart.CFrame
 
-        Desync["newPos"] = CFrame.new(
-            Client.Character.HumanoidRootPart.Position + Vector3.new(
-                math.random(Settings.Desync.X.Min, Settings.Desync.X.Max),
-                math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max),
-                math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max)
+        if Settings.Desync.DesyncMode == "Static" then
+            Desync["newPos"] = CFrame.new(
+                Client.Character.HumanoidRootPart.Position + Vector3.new(
+                    math.random(Settings.Desync.X.Min, Settings.Desync.X.Max),
+                    math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max),
+                    math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max)
+                )
             )
-        ) * CFrame.Angles(
-            math.rad(math.random(Settings.Desync.X.Min, Settings.Desync.X.Max)),
-            math.rad(math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max)),
-            math.rad(math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max))
-        )
+        elseif Settings.Desync.DesyncMode == "Dynamic" then
+            Desync["newPos"] = CFrame.new(
+                Client.Character.HumanoidRootPart.Position + Vector3.new(
+                    math.sin(tick()) * Settings.Desync.Range,
+                    math.sin(tick()) * Settings.Desync.Range,
+                    math.cos(tick()) * Settings.Desync.Range
+                )
+            )
+        elseif Settings.Desync.DesyncMode == "Jitter" then
+            Desync["newPos"] = CFrame.new(
+                Client.Character.HumanoidRootPart.Position + Vector3.new(
+                    math.random(-Settings.Desync.Range, Settings.Desync.Range),
+                    math.random(-Settings.Desync.Range, Settings.Desync.Range),
+                    math.random(-Settings.Desync.Range, Settings.Desync.Range)
+                )
+            )
+        elseif Settings.Desync.DesyncMode == "Spin" then
+            Desync["newPos"] = CFrame.new(
+                Client.Character.HumanoidRootPart.Position + Vector3.new(
+                    math.sin(tick()) * Settings.Desync.Range,
+                    0,
+                    math.cos(tick()) * Settings.Desync.Range
+                )
+            )
+        end
     
         Client.Character.HumanoidRootPart.CFrame = Desync["newPos"]
     
