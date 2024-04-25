@@ -14,6 +14,7 @@ local Camera         = Workspace.CurrentCamera
 local Remote         = Storage:FindFirstChild('MainEvent')
 local ping           = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]
 local Fov            = Drawing.new("Circle")
+local Tracer         = Drawing.new("Line")
 local Desync         = {OldPos = nil, newPos = nil}
 local CurrentPing    = {ping = 0}
 
@@ -40,26 +41,27 @@ local Tabs = {
 local Silent = Tabs.Main:AddLeftGroupbox('SilentAim')
 local Predication = Tabs.Main:AddRightGroupbox('Predication')
 local AntiAim = Tabs.Main:AddRightGroupbox('AntiAim')
-local Circle = Tabs.Main:AddLeftGroupbox('Fov')
+local Visuals = Tabs.Main:AddLeftGroupbox('Visuals')
 
 local Drawing = {
     Fov = {
+        Enabled = false,
+        Color = Color3.fromRGB(255, 255, 255),
+    },
+    Tracer = {
         Enabled = false,
         Color = Color3.fromRGB(255, 255, 255),
     }
 }
 
 local Settings = {
-    Version = '1.0.0 | Private',
+    Version = '1.1.2 | Private',
     SilentAim = {
         Enabled = false,
         HitBone = 'Head',
+        AimMethod = {'ClosestToMouse', 'ClosestToPlayer'},
         Fov = 100,
-        Check = {
-            Visible = false,
-            ForceField = false,
-            Grabbed = false
-        }
+        Check = {'Visible', 'ForceField', 'Grabbed', "Knocked"}
     },
     Prediction = {
         Enabled = false,
@@ -84,6 +86,28 @@ Silent:AddToggle('SilentAim', {
     Tooltip = 'Checkington',
     Callback = function(Value)
         Settings.SilentAim.Enabled = Value
+    end
+})
+
+Silent:AddDropdown('AimMethods', {
+    Values = Settings.SilentAim.AimMethod,
+    Default = 0,
+    Multi = false, 
+    Text = 'AimMethods',
+    Tooltip = 'AimMethods',
+    Callback = function(Value)
+        Settings.SilentAim.AimMethods = Value
+    end
+})
+
+Silent:AddDropdown('Checks', {
+    Values = Settings.SilentAim.Check,
+    Default = 0,
+    Multi = true, 
+    Text = 'Checks',
+    Tooltip = 'Checks',
+    Callback = function(Value)
+        Settings.SilentAim.Check = Value
     end
 })
 
@@ -130,7 +154,7 @@ AntiAim:AddSlider('AntiAimRange', {
     end
 })
 
-Circle:AddToggle('Fov', {
+Visuals:AddToggle('Fov', {
     Text = 'Fov',
     Default = false,
     Tooltip = 'Fov',
@@ -139,7 +163,16 @@ Circle:AddToggle('Fov', {
     end
 })
 
-Circle:AddSlider('Fov', {
+Visuals:AddToggle('Tracer', {
+    Text = 'Tracer',
+    Default = false,
+    Tooltip = 'Tracer',
+    Callback = function(Value)
+        Drawing.Tracer.Enabled = Value
+    end
+})
+
+Visuals:AddSlider('Fov', {
     Text = 'Fov Radius',
     Default = 100,
     Min = 1,
@@ -201,12 +234,47 @@ Predication:AddDropdown('ResolverMethod', {
     end
 })
 
+local IsAlive = function(Target)
+    return Target and Target.Character and Target.Character:FindFirstChild('Humanoid') and Target.Character.Humanoid.Health > 0
+end
+
+local IsVisible = function(Target)
+    if not IsAlive(Target) or not IsAlive(Client) then return false end
+    return #Camera:GetPartsObscuringTarget({Target.Character[Settings.SilentAim.HitBone].Position, Client.Character[Settings.SilentAim.HitBone].Position}, {Camera, Client.Character, Target.Character}) == 0
+end
+
+local IsGrabbed = function(Target)
+    if not IsAlive(Target) then return false end
+    return Target.Character:FindFirstChild("GRABBING_CONSTRAINT") ~= nil
+end
+
+local IsForceField = function(Target)
+    if not IsAlive(Target) then return false end
+    return Target.Character:FindFirstChildOfClass('ForceField') ~= nil
+end
+
+local IsKnocked = function(Target)
+    if not IsAlive(Target) then return false end
+    return Target.Character.BodyEffects["K.O"].Value == true
+end
+
 local Fov = function()
     Fov.Visible = Drawing.Fov.Enabled
     Fov.Radius = Settings.SilentAim.Fov
     Fov.Color = Drawing.Fov.Color
     Fov.Position = InputService:GetMouseLocation() - Vector2.new(0, 35 * 3)
 end
+
+local Tracer = function(Target)
+    Tracer.Visible = Drawing.Tracer.Enabled
+    Tracer.Color = Drawing.Tracer.Color
+    Tracer.From = InputService:GetMouseLocation() - Vector2.new(0, 35 * 3)
+    if Target then
+        Tracer.To = Vector2.new(Camera:WorldToViewportPoint(Target.Character.HumanoidRootPart.Position).X, Camera:WorldToViewportPoint(Target.Character.HumanoidRootPart.Position).Y) - Vector2.new(0, 35 * 3)
+    else
+        Tracer.Visible = false
+    end
+end 
 
 local GetClosestPlayer = function(Radius)
     local Distance, ClosestPlayer = Radius, nil
@@ -222,16 +290,38 @@ local GetClosestPlayer = function(Radius)
 
         if Magnitude > Distance then continue end
         if OnScreen then
-            Distance = Magnitude
-            ClosestPlayer = v
+            if Settings.SilentAim.AimMethods == "ClosestToMouse" then
+                Distance = Magnitude
+                ClosestPlayer = v
+            elseif Settings.SilentAim.AimMethods == "ClosestToPlayer" then
+                local PlayerPosition = Camera:WorldToViewportPoint(Client.Character.HumanoidRootPart.Position)
+                local TargetPosition = Camera:WorldToViewportPoint(RootPart.Position)
+                local PlayerDistance = (Vector2.new(PlayerPosition.X, PlayerPosition.Y) - InputService:GetMouseLocation()).Magnitude
+                local TargetDistance = (Vector2.new(TargetPosition.X, TargetPosition.Y) - InputService:GetMouseLocation()).Magnitude
+                if TargetDistance < PlayerDistance then
+                    Distance = Magnitude
+                    ClosestPlayer = v
+                end
+            end
         end
     end 
+    
+    if ClosestPlayer then
+        for name, value in next, Options.Checks.Value do
+            if name == "Visible" and not IsVisible(ClosestPlayer) then return end
+            if name == "ForceField" and IsForceField(ClosestPlayer) then return end
+            if name == "Grabbed" and IsGrabbed(ClosestPlayer) then return end
+            if name == "Knocked" and IsKnocked(ClosestPlayer) then return end
+        end
+    end
+
     return ClosestPlayer
 end
 
 local Update = function()
     Fov()
     Target = GetClosestPlayer(Settings.SilentAim.Fov)
+    Tracer(Target)
 end
 
 RunService.RenderStepped:Connect(Update)
@@ -241,7 +331,7 @@ RunService.Heartbeat:Connect(function()
     if Settings.Desync.Enabled then 
         Desync["OldPos"] = Client.Character.HumanoidRootPart.CFrame
 
-        if Settings.Desync.DesyncMode == "Static" then
+        if Settings.Desync.DesyncMode == "Static" then 
             Desync["newPos"] = CFrame.new(
                 Client.Character.HumanoidRootPart.Position + Vector3.new(
                     math.random(Settings.Desync.X.Min, Settings.Desync.X.Max),
@@ -330,11 +420,11 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
         elseif Settings.Prediction.Enabled or Settings.Prediction.AutoPrediction and Settings.Prediction.Resolver then
             if Settings.Prediction.ResolveMethod == "Custom Prediction" then
-                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character[Settings.SilentAim.HitBone].Velocity * Settings.Prediction.Prediction
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.HumanoidRootPart.Velocity * Settings.Prediction.Prediction
             elseif Settings.Prediction.ResolveMethod == "Velocity" then
-                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character[Settings.SilentAim.HitBone].Velocity * (Settings.Prediction.Prediction / 100)
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.HumanoidRootPart.Velocity * (Settings.Prediction.Prediction / 100)
             elseif Settings.Prediction.ResolveMethod == "HumanoidMoveDirection" then
-                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character[Settings.SilentAim.HitBone].Humanoid.MoveDirection * (Settings.Prediction.Prediction / 100)
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.HumanoidRootPart.Humanoid.MoveDirection * (Settings.Prediction.Prediction / 100)
             end
         else
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
