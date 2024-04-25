@@ -4,6 +4,17 @@ local gameid = game.PlaceId
 local HttpService = game:GetService("HttpService")
 local PlacesData = game:HttpGet("https://raw.githubusercontent.com/Bovanlaarhoven/Hydraware/main/src/places.json")
 local Places = HttpService:JSONDecode(PlacesData)
+local getconnections = debug.getconnections
+local DisableConnection = {ScriptContext, LogService}
+
+for _, v in pairs(DisableConnection) do
+    for _, v in pairs(getconnections(v.Error)) do
+        v:Disable()
+    end
+    for _, v in pairs(getconnections(v.MessageOut)) do
+        v:Disable()
+    end
+end
 
 local supported = false
 
@@ -20,6 +31,10 @@ for placeName, placeIds in pairs(Places) do
     if supported then
         break
     end
+end
+
+if not isfolder("HydraWare") then
+    makefolder("HydraWare")
 end
 
 if supported then
