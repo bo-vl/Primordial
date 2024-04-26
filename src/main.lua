@@ -8,15 +8,17 @@ local RunService     = game:GetService('RunService')
 local Workspace      = game:GetService('Workspace')
 local Storage        = game:GetService('ReplicatedStorage')
 local InputService   = game:GetService('UserInputService')
-local HitBones       = {}
-local Client         = Players.LocalPlayer
-local Camera         = Workspace.CurrentCamera
-local Remote         = Storage:FindFirstChild('MainEvent')
 local ping           = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]
+local Remote         = Storage:FindFirstChild('MainEvent')
 local Fov            = Drawing.new("Circle")
 local Tracer         = Drawing.new("Line")
+local Client         = Players.LocalPlayer
+local Camera         = Workspace.CurrentCamera
+local Shop           = workspace.Ignored.Shop
+local backpack       = Client.Backpack
 local Desync         = {OldPos = nil, newPos = nil}
 local CurrentPing    = {ping = 0}
+local HitBones       = {}
 
 
 for _, v in pairs(Client.Character:GetChildren()) do if v:IsA("BasePart") then table.insert(HitBones, v.Name) end end
@@ -42,6 +44,7 @@ local Silent = Tabs.Main:AddLeftGroupbox('SilentAim')
 local Predication = Tabs.Main:AddRightGroupbox('Predication')
 local AntiAim = Tabs.Main:AddRightGroupbox('AntiAim')
 local Visuals = Tabs.Main:AddLeftGroupbox('Visuals')
+local AutoShop = Tabs.Main:AddRightGroupbox('AutoShop')
 
 local Drawing = {
     Fov = {
@@ -77,6 +80,14 @@ local Settings = {
         X = {Min = -180, Max = 180},
         Y = {Min = -180, Max = 180},
         Z = {Min = -180, Max = 180}
+    },
+    AutoBuy = {
+        Enabled = false,
+        Weapons = {"Revolver", "Double-Barrel SG"},
+        Ammo = 1
+    },
+    Misc = {
+        AutoReload = false,
     }
 }
 
@@ -234,6 +245,40 @@ Predication:AddDropdown('ResolverMethod', {
     end
 })
 
+AutoShop:AddToggle('AutoBuy', {
+    Text = 'Enable',
+    Default = false,
+    Tooltip = 'Enable',
+    Callback = function(Value)
+        Settings.AutoBuy.Enabled = Value
+    end
+})
+
+AutoShop:AddDropdown('AutoBuyWeapon', {
+    Values = Settings.AutoBuy.Weapons,
+    Default = 0,
+    Multi = true, 
+    Text = 'Auto Buy',
+    Tooltip = 'Auto Buy Weapon',
+    Callback = function(Value)
+        Settings.AutoBuy.Weapons = Value
+    end
+})
+
+AutoShop:AddSlider('AmmoAmound', {
+    Text = 'AmmoAmound',
+    Default = 1,
+    Min = 0,
+    Max = 10,
+    Rounding = 0,
+    Compact = false,
+    Callback = function(Value)
+        Settings.AutoBuy.Ammo = Value
+    end
+})
+
+
+
 local IsAlive = function(Target)
     return Target and Target.Character and Target.Character:FindFirstChild('Humanoid') and Target.Character.Humanoid.Health > 0
 end
@@ -275,6 +320,30 @@ local Tracer = function(Target)
         Tracer.Visible = false
     end
 end 
+
+local AutoBuy = function(selectedWeapon)
+    if IsForceField(Client) then return end
+    if Settings.AutoBuy.Enabled then
+        for name, value in next, selectedWeapon do
+            local GunName = (name == "Revolver" and "[Revolver] - $1379") or (name == "Double-Barrel SG" and "[Double-Barrel SG] - $1432")
+            local ammoName = (name == "Revolver") and "12 [Revolver Ammo] - $80" or (name == "Double-Barrel SG") and "18 [Double-Barrel SG Ammo] - $53"
+            if GunName then
+                if not (backpack:FindFirstChild(GunName) or workspace.Players:WaitForChild(Client.Name):FindFirstChild(GunName)) then
+                    Client.Character.HumanoidRootPart.CFrame = Shop[GunName].Head.CFrame
+                    wait(1)
+                    fireclickdetector(Shop[GunName].ClickDetector)
+                end
+            end
+            if Settings.AutoBuy.Ammo > 0 then
+                for i = 1, Settings.AutoBuy.Ammo do
+                    Client.Character.HumanoidRootPart.CFrame = Shop[ammoName].Head.CFrame
+                    wait(.5)
+                    fireclickdetector(Shop[ammoName].ClickDetector)
+                end
+            end
+        end
+    end
+end
 
 local GetClosestPlayer = function(Radius)
     local Distance, ClosestPlayer = Radius, nil
@@ -324,8 +393,13 @@ local Update = function()
     Tracer(Target)
 end
 
-RunService.RenderStepped:Connect(Update)
+local OnCharacterAdded = function()
+    AutoBuy(Settings.AutoBuy.Weapons)
+end
 
+Client.CharacterAdded:Connect(OnCharacterAdded)
+
+RunService.RenderStepped:connect(Update)
 RunService.Heartbeat:Connect(function()
     CurrentPing = tonumber(string.format("%.3f", ping:GetValue()))
     if Settings.Desync.Enabled then 
@@ -424,7 +498,7 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
             elseif Settings.Prediction.ResolveMethod == "Velocity" then
                 Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.HumanoidRootPart.Velocity * (Settings.Prediction.Prediction / 100)
             elseif Settings.Prediction.ResolveMethod == "HumanoidMoveDirection" then
-                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.HumanoidRootPart.Humanoid.MoveDirection * (Settings.Prediction.Prediction / 100)
+                Arguments[2] = Target.Character.HumanoidRootPart.Position + Target.Character.HumanoidRootPart.Humanoid.MoveDirection * (Settings.Prediction.Prediction / 10)
             end
         else
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
@@ -436,7 +510,7 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
 end)
 
 local old; old = hookmetamethod(game, "__index", function(self, key)
-    if not checkcaller() and key == "CFrame" and self == Client.Character.HumanoidRootPart and Settings.Desync.Enabled then
+    if not checkcaller() and key == "CFrame" and self == Client.Character:FindFirstChild("HumanoidRootPart") and Settings.Desync.Enabled then
         return Desync["OldPos"]
     end
     return old(self, key)
