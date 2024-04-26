@@ -58,7 +58,7 @@ local Drawing = {
 }
 
 local Settings = {
-    Version = '1.1.2 | Private',
+    Version = '1.1.5 | Private',
     SilentAim = {
         Enabled = false,
         HitBone = 'Head',
@@ -335,7 +335,7 @@ local AutoBuy = function(selectedWeapon)
                 end
             end
             if Settings.AutoBuy.Ammo > 0 then
-                for i = 1, Settings.AutoBuy.Ammo do
+                for i = 1, Settings.AutoBuy.Ammo + 1 do
                     Client.Character.HumanoidRootPart.CFrame = Shop[ammoName].Head.CFrame
                     wait(.5)
                     fireclickdetector(Shop[ammoName].ClickDetector)
@@ -494,11 +494,11 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
         elseif Settings.Prediction.Enabled or Settings.Prediction.AutoPrediction and Settings.Prediction.Resolver then
             if Settings.Prediction.ResolveMethod == "Custom Prediction" then
-                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.HumanoidRootPart.Velocity * Settings.Prediction.Prediction
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + (Target.Character.HumanoidRootPart.Velocity * Settings.Prediction.Prediction)
             elseif Settings.Prediction.ResolveMethod == "Velocity" then
-                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.HumanoidRootPart.Velocity * (Settings.Prediction.Prediction / 100)
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + (Target.Character.HumanoidRootPart.Velocity * (Settings.Prediction.Prediction / 100))
             elseif Settings.Prediction.ResolveMethod == "HumanoidMoveDirection" then
-                Arguments[2] = Target.Character.HumanoidRootPart.Position + Target.Character.HumanoidRootPart.Humanoid.MoveDirection * (Settings.Prediction.Prediction / 10)
+                Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.Humanoid.MoveDirection * (Settings.Prediction.Prediction / 10)
             end
         else
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
@@ -510,7 +510,7 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
 end)
 
 local old; old = hookmetamethod(game, "__index", function(self, key)
-    if not checkcaller() and key == "CFrame" and self == Client.Character:FindFirstChild("HumanoidRootPart") and Settings.Desync.Enabled then
+    if not checkcaller() and key == "CFrame" and self == Client.Character.HumanoidRootPart and Settings.Desync.Enabled then
         return Desync["OldPos"]
     end
     return old(self, key)

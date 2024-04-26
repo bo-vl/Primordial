@@ -1,5 +1,4 @@
 if (not game:IsLoaded()) then game.Loaded:Wait() end
-if (not game:GetService("Players").LocalPlayer.Character) then game:GetService("Players").LocalPlayer.CharacterAdded:Wait() end
 
 local gameid = game.PlaceId
 local HttpService = game:GetService("HttpService")
