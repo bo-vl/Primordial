@@ -46,6 +46,77 @@ local AntiAim = Tabs.Main:AddRightGroupbox('AntiAim')
 local Visuals = Tabs.Main:AddLeftGroupbox('Visuals')
 local AutoShop = Tabs.Main:AddRightGroupbox('AutoShop')
 
+local Guns = {
+    ["Glock"] = {
+        Gun = "[Glock] - $318",
+        Ammo = "30 [Glock Ammo] - $64"
+    },
+    ["Silencer"] = {
+        Gun = "[Silencer] - $424",
+        Ammo = "25 [Silencer Ammo] - $53"
+    },
+    ["Revolver"] = {
+        Gun = "[Revolver] - $1379",
+        Ammo = "12 [Revolver Ammo] - $80"
+    },
+    ["TacticalShotgun"] = {
+        Gun = "[TacticalShotgun] - $1857",
+        Ammo = "20 [TacticalShotgun Ammo] - $64"
+    },
+    ["Shotgun"] = {
+        Gun = "[Shotgun] - $1326",
+        Ammo = "20 [Shotgun Ammo] - $64"
+    },
+    ["Double-Barrel SG"] = {
+        Gun = "[Double-Barrel SG] - $1432",
+        Ammo = "18 [Double-Barrel SG Ammo] - $53"
+    },
+    ["SMG"] = {
+        Gun = "[SMG] - $796",
+        Ammo = "80 [SMG Ammo] - $64"
+    },
+    ["P90"] = {
+        Gun = "[P90] - $1061",
+        Ammo = "120 [P90 Ammo] - $64"
+    },
+    ["DrumGun"] = {
+        Gun = "[DrumGun] - $3183",
+        Ammo = "100 [DrumGun Ammo] - $212"
+    },
+    ["LMG"] = {
+        Gun = "[LMG] - $3978",
+        Ammo = "200 [LMG Ammo] - $318"
+    },
+    ["AUG"] = {
+        Gun = "[AUG] - $2069",
+        Ammo = "90 [AUG Ammo] - $85"
+    },
+    ["AR"] = {
+        Gun = "[AR] - $1061",
+        Ammo = "100 [AR Ammo] - $80"
+    },
+    ["AK47"] = {
+        Gun = "[AK47] - $2387",
+        Ammo = "90 [AK47 Ammo] - $85"
+    },
+    ["SilencerAR"] = {
+        Gun = "[SilencerAR] - $1326",
+        Ammo = "25 [Silencer Ammo] - $53"
+    },
+    ["Flamethrower"] = {
+        Gun = "[Flamethrower] - $15914",
+        Ammo = "140 [Flamethrower Ammo] - $1644"
+    },
+    ["GrenadeLauncher"] = {
+        Gun = "[GrenadeLauncher] - $10609",
+        Ammo = "12 [GrenadeLauncher Ammo] - $3183"
+    },
+    ["RPG"] = {
+        Gun = "[RPG] - $6365",
+        Ammo = "5 [RPG Ammo] - $1061"
+    }
+}
+
 local Drawing = {
     Fov = {
         Enabled = false,
@@ -58,7 +129,7 @@ local Drawing = {
 }
 
 local Settings = {
-    Version = '1.1.5 | Private',
+    Version = '1.1.6 | Private',
     SilentAim = {
         Enabled = false,
         HitBone = 'Head',
@@ -83,7 +154,7 @@ local Settings = {
     },
     AutoBuy = {
         Enabled = false,
-        Weapons = {"Revolver", "Double-Barrel SG"},
+        Weapons = { "Glock","SMG","Silencer","TacticalShotgun","P90","AUG","Shotgun","RPG","AR","Double-Barrel SG","Flamethrower","Revolver","LMG","AK47","DrumGun","Silencer","GrenadeLauncher", "SilencerAR"},
         Ammo = 1
     },
     Misc = {
@@ -98,6 +169,13 @@ Silent:AddToggle('SilentAim', {
     Callback = function(Value)
         Settings.SilentAim.Enabled = Value
     end
+}):AddKeyPicker('KeyPicker', {
+    Default = 'C',
+    SyncToggleState = true,
+    Mode = 'Toggle',
+
+    Text = 'Silent Aim',
+    NoUI = false
 })
 
 Silent:AddDropdown('AimMethods', {
@@ -140,6 +218,13 @@ AntiAim:AddToggle('Desync', {
     Callback = function(Value)
         Settings.Desync.Enabled = Value
     end
+}):AddKeyPicker('KeyPicker', {
+    Default = 'X',
+    SyncToggleState = true,
+    Mode = 'Toggle',
+
+    Text = 'Desync',
+    NoUI = false
 })
 
 AntiAim:AddDropdown('AntiAim', {
@@ -277,8 +362,6 @@ AutoShop:AddSlider('AmmoAmound', {
     end
 })
 
-
-
 local IsAlive = function(Target)
     return Target and Target.Character and Target.Character:FindFirstChild('Humanoid') and Target.Character.Humanoid.Health > 0
 end
@@ -325,8 +408,8 @@ local AutoBuy = function(selectedWeapon)
     if IsForceField(Client) then return end
     if Settings.AutoBuy.Enabled then
         for name, value in next, selectedWeapon do
-            local GunName = (name == "Revolver" and "[Revolver] - $1379") or (name == "Double-Barrel SG" and "[Double-Barrel SG] - $1432")
-            local ammoName = (name == "Revolver") and "12 [Revolver Ammo] - $80" or (name == "Double-Barrel SG") and "18 [Double-Barrel SG Ammo] - $53"
+            local GunName = Guns[name].Gun
+            local AmmoName = Guns[name].Ammo
             if GunName then
                 if not (backpack:FindFirstChild(GunName) or workspace.Players:WaitForChild(Client.Name):FindFirstChild(GunName)) then
                     Client.Character.HumanoidRootPart.CFrame = Shop[GunName].Head.CFrame
@@ -336,9 +419,9 @@ local AutoBuy = function(selectedWeapon)
             end
             if Settings.AutoBuy.Ammo > 0 then
                 for i = 1, Settings.AutoBuy.Ammo + 1 do
-                    Client.Character.HumanoidRootPart.CFrame = Shop[ammoName].Head.CFrame
-                    wait(.5)
-                    fireclickdetector(Shop[ammoName].ClickDetector)
+                    Client.Character.HumanoidRootPart.CFrame = Shop[AmmoName].Head.CFrame
+                    wait(1)
+                    fireclickdetector(Shop[AmmoName].ClickDetector)
                 end
             end
         end
@@ -510,8 +593,10 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
 end)
 
 local old; old = hookmetamethod(game, "__index", function(self, key)
-    if not checkcaller() and key == "CFrame" and self == Client.Character.HumanoidRootPart and Settings.Desync.Enabled then
-        return Desync["OldPos"]
+    if not checkcaller() then
+        if key == "CFrame" and Client.Character and self == Client.Character.HumanoidRootPart and Settings.Desync.Enabled and Desync["OldPos"] ~= nil and Client.Character:FindFirstChild("Humanoid") and Client.Character:FindFirstChild("Humanoid").Health > 0 then
+            return Desync["OldPos"]
+        end
     end
     return old(self, key)
 end)
