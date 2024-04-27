@@ -487,45 +487,28 @@ RunService.Heartbeat:Connect(function()
     CurrentPing = tonumber(string.format("%.3f", ping:GetValue()))
     if Settings.Desync.Enabled then 
         Desync["OldPos"] = Client.Character.HumanoidRootPart.CFrame
+        local Desyncmodes = {
+            Static = {math.random(Settings.Desync.X.Min, Settings.Desync.X.Max),math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max),math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max)},
+            Dynamic = {math.sin(tick()) * Settings.Desync.Range, math.sin(tick()) * Settings.Desync.Range, math.cos(tick()) * Settings.Desync.Range},
+            Jitter = {math.random(-Settings.Desync.Range, Settings.Desync.Range),math.random(-Settings.Desync.Range, Settings.Desync.Range),math.random(-Settings.Desync.Range, Settings.Desync.Range)},
+            Spin = {math.sin(tick()) * Settings.Desync.Range, 0, math.cos(tick()) * Settings.Desync.Range}
+        }
 
-        if Settings.Desync.DesyncMode == "Static" then 
+        if Desyncmodes[Settings.Desync.DesyncMode] then
             Desync["newPos"] = CFrame.new(
                 Client.Character.HumanoidRootPart.Position + Vector3.new(
-                    math.random(Settings.Desync.X.Min, Settings.Desync.X.Max),
-                    math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max),
-                    math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max)
+                    unpack(Desyncmodes[Settings.Desync.DesyncMode])
                 )
             )
-        elseif Settings.Desync.DesyncMode == "Dynamic" then
-            Desync["newPos"] = CFrame.new(
-                Client.Character.HumanoidRootPart.Position + Vector3.new(
-                    math.sin(tick()) * Settings.Desync.Range,
-                    math.sin(tick()) * Settings.Desync.Range,
-                    math.cos(tick()) * Settings.Desync.Range
-                )
-            )
-        elseif Settings.Desync.DesyncMode == "Jitter" then
-            Desync["newPos"] = CFrame.new(
-                Client.Character.HumanoidRootPart.Position + Vector3.new(
-                    math.random(-Settings.Desync.Range, Settings.Desync.Range),
-                    math.random(-Settings.Desync.Range, Settings.Desync.Range),
-                    math.random(-Settings.Desync.Range, Settings.Desync.Range)
-                )
-            )
-        elseif Settings.Desync.DesyncMode == "Spin" then
-            Desync["newPos"] = CFrame.new(
-                Client.Character.HumanoidRootPart.Position + Vector3.new(
-                    math.sin(tick()) * Settings.Desync.Range,
-                    0,
-                    math.cos(tick()) * Settings.Desync.Range
-                )
-            )
+        else
+            warn("Invalid desync mode:", Settings.Desync.DesyncMode)
+            return
         end
-    
+
         Client.Character.HumanoidRootPart.CFrame = Desync["newPos"]
-    
+
         RunService.RenderStepped:Wait()
-    
+
         Client.Character.HumanoidRootPart.CFrame = Desync["OldPos"]
     end
 
@@ -575,7 +558,7 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
     if (not checkcaller() and Settings.SilentAim.Enabled and Target and Method == 'FireServer' and self == Remote and Arguments[1] == 'UpdateMousePos') then 
         if Settings.Prediction.Enabled then
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
-        elseif Settings.Prediction.Enabled or Settings.Prediction.AutoPrediction and Settings.Prediction.Resolver then
+        elseif Settings.Prediction.Enabled or (Settings.Prediction.AutoPrediction and Settings.Prediction.Resolver) then
             if Settings.Prediction.ResolveMethod == "Custom Prediction" then
                 Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + (Target.Character.HumanoidRootPart.Velocity * Settings.Prediction.Prediction)
             elseif Settings.Prediction.ResolveMethod == "Velocity" then
@@ -586,15 +569,17 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
         else
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
         end
+        
         return namecall(self, unpack(Arguments))
     end
  
     return namecall(self, ...)
 end)
 
+
 local old; old = hookmetamethod(game, "__index", function(self, key)
     if not checkcaller() then
-        if key == "CFrame" and Client.Character and self == Client.Character.HumanoidRootPart and Settings.Desync.Enabled and Desync["OldPos"] ~= nil and Client.Character:FindFirstChild("Humanoid") and Client.Character:FindFirstChild("Humanoid").Health > 0 then
+        if key == "CFrame" and Client.Character and self == Client.Character:FindFirstChild("HumanoidRootPart") and Settings.Desync.Enabled and Desync["OldPos"] ~= nil and Client.Character:FindFirstChild("Humanoid") and Client.Character:FindFirstChild("Humanoid").Health > 0 then
             return Desync["OldPos"]
         end
     end
