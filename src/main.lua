@@ -36,15 +36,18 @@ local Window = Library:CreateWindow({
 })
 
 local Tabs = {
-    Main = Window:AddTab('Main'),
+    Legit = Window:AddTab('Legit'),
+    Rage = Window:AddTab('Rage'),
+    Visual = Window:AddTab('Visuals'),
+    Misc = Window:AddTab('Misc'),
     ['UI Settings'] = Window:AddTab('UI Settings'),
 }
 
-local Silent = Tabs.Main:AddLeftGroupbox('SilentAim')
-local Predication = Tabs.Main:AddRightGroupbox('Predication')
-local AntiAim = Tabs.Main:AddRightGroupbox('AntiAim')
-local Visuals = Tabs.Main:AddLeftGroupbox('Visuals')
-local AutoShop = Tabs.Main:AddRightGroupbox('AutoShop')
+local Silent = Tabs.Legit:AddLeftGroupbox('Aim')
+local Predication = Tabs.Legit:AddRightGroupbox('Predication')
+local AntiAim = Tabs.Rage:AddLeftGroupbox('AntiAim')
+local Visuals = Tabs.Visual:AddLeftGroupbox('Visuals')
+local AutoShop = Tabs.Misc:AddLeftGroupbox('AutoShop')
 
 local Guns = {
     ["Glock"] = {
@@ -129,13 +132,17 @@ local Drawing = {
 }
 
 local Settings = {
-    Version = '1.1.6 | Private',
+    Version = '1.1.7 | Private',
     SilentAim = {
         Enabled = false,
         HitBone = 'Head',
         AimMethod = {'ClosestToMouse', 'ClosestToPlayer'},
         Fov = 100,
         Check = {'Visible', 'ForceField', 'Grabbed', "Knocked"}
+    },
+    Camlock = {
+        Enabled = false,
+        smoothing = 1,
     },
     Prediction = {
         Enabled = false,
@@ -176,6 +183,34 @@ Silent:AddToggle('SilentAim', {
 
     Text = 'Silent Aim',
     NoUI = false
+})
+
+Silent:AddToggle('Camlock', {
+    Text = 'Camlock',
+    Default = false,
+    Tooltip = 'Checkington',
+    Callback = function(Value)
+        Settings.Camlock.Enabled = Value
+    end
+}):AddKeyPicker('KeyPicker', {
+    Default = 'Z',
+    SyncToggleState = true,
+    Mode = 'Toggle',
+
+    Text = 'Camlock',
+    NoUI = false
+})
+
+Silent:AddSlider('Smoothing', {
+    Text = 'Camlock Smoothing',
+    Default = 10,
+    Min = 1,
+    Max = 100,
+    Rounding = 0,
+    Compact = false,
+    Callback = function(Value)
+        Settings.Camlock.smoothing = Value
+    end
 })
 
 Silent:AddDropdown('AimMethods', {
@@ -470,7 +505,19 @@ local GetClosestPlayer = function(Radius)
     return ClosestPlayer
 end
 
+local Camlock = function()
+    if not IsAlive(Client or Target) then return end
+    if Settings.Camlock.Enabled then
+        local Target = GetClosestPlayer(Settings.SilentAim.Fov)
+        if Target then
+            local CFrameMain = CFrame.new(Camera.CFrame.Position, Target.Character[Settings.SilentAim.HitBone].Position)
+            Camera.CFrame = Camera.CFrame:Lerp(CFrameMain, (Settings.Camlock.smoothing / 100))
+        end
+    end
+end
+
 local Update = function()
+    Camlock()
     Fov()
     Target = GetClosestPlayer(Settings.SilentAim.Fov)
     Tracer(Target)
@@ -554,7 +601,7 @@ end)
 
 local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...)
     local Arguments, Method = {...}, getnamecallmethod()
- 
+    
     if (not checkcaller() and Settings.SilentAim.Enabled and Target and Method == 'FireServer' and self == Remote and Arguments[1] == 'UpdateMousePos') then 
         if Settings.Prediction.Enabled then
             Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
@@ -566,13 +613,9 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
             elseif Settings.Prediction.ResolveMethod == "HumanoidMoveDirection" then
                 Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position + Target.Character.Humanoid.MoveDirection * (Settings.Prediction.Prediction / 10)
             end
-        else
-            Arguments[2] = Target.Character[Settings.SilentAim.HitBone].Position
         end
-        
         return namecall(self, unpack(Arguments))
     end
- 
     return namecall(self, ...)
 end)
 
