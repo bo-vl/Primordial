@@ -46,7 +46,7 @@ local Tabs = {
 local Silent = Tabs.Legit:AddLeftGroupbox('Aim')
 local Predication = Tabs.Legit:AddRightGroupbox('Predication')
 local AntiAim = Tabs.Rage:AddLeftGroupbox('AntiAim')
-local Visuals = Tabs.Visual:AddLeftGroupbox('Visuals')
+local VisualsTab = Tabs.Visual:AddLeftGroupbox('Visuals')
 local AutoShop = Tabs.Misc:AddLeftGroupbox('AutoShop')
 
 local Guns = {
@@ -120,7 +120,7 @@ local Guns = {
     }
 }
 
-local Drawing = {
+local Visuals = {
     Fov = {
         Enabled = false,
         Color = Color3.fromRGB(255, 255, 255),
@@ -128,7 +128,7 @@ local Drawing = {
     Tracer = {
         Enabled = false,
         Color = Color3.fromRGB(255, 255, 255),
-    }
+    },
 }
 
 local Settings = {
@@ -285,25 +285,25 @@ AntiAim:AddSlider('AntiAimRange', {
     end
 })
 
-Visuals:AddToggle('Fov', {
+VisualsTab:AddToggle('Fov', {
     Text = 'Fov',
     Default = false,
     Tooltip = 'Fov',
     Callback = function(Value)
-        Drawing.Fov.Enabled = Value
+        Visuals.Fov.Enabled = Value
     end
 })
 
-Visuals:AddToggle('Tracer', {
+VisualsTab:AddToggle('Tracer', {
     Text = 'Tracer',
     Default = false,
     Tooltip = 'Tracer',
     Callback = function(Value)
-        Drawing.Tracer.Enabled = Value
+        Visuals.Tracer.Enabled = Value
     end
 })
 
-Visuals:AddSlider('Fov', {
+VisualsTab:AddSlider('Fov', {
     Text = 'Fov Radius',
     Default = 100,
     Min = 1,
@@ -355,7 +355,7 @@ Predication:AddToggle('Resolver', {
 })
 
 Predication:AddDropdown('ResolverMethod', {
-    Values = {'Custom Prediction', 'Velocity', 'HumanoidMoveDirection'},
+    Values = Settings.Prediction.ResolveMethod,
     Default = 0,
     Multi = false, 
     Text = 'Resolve Method',
@@ -422,15 +422,15 @@ local IsKnocked = function(Target)
 end
 
 local Fov = function()
-    Fov.Visible = Drawing.Fov.Enabled
+    Fov.Visible = Visuals.Fov.Enabled
     Fov.Radius = Settings.SilentAim.Fov
-    Fov.Color = Drawing.Fov.Color
+    Fov.Color = Visuals.Fov.Color
     Fov.Position = InputService:GetMouseLocation() - Vector2.new(0, 35 * 3)
 end
 
 local Tracer = function(Target)
-    Tracer.Visible = Drawing.Tracer.Enabled
-    Tracer.Color = Drawing.Tracer.Color
+    Tracer.Visible = Visuals.Tracer.Enabled
+    Tracer.Color = Visuals.Tracer.Color
     Tracer.From = InputService:GetMouseLocation() - Vector2.new(0, 35 * 3)
     if Target then
         Tracer.To = Vector2.new(Camera:WorldToViewportPoint(Target.Character.HumanoidRootPart.Position).X, Camera:WorldToViewportPoint(Target.Character.HumanoidRootPart.Position).Y) - Vector2.new(0, 35 * 3)
@@ -504,6 +504,7 @@ local GetClosestPlayer = function(Radius)
 
     return ClosestPlayer
 end
+
 
 local Camlock = function()
     if not IsAlive(Client or Target) then return end
@@ -628,6 +629,5 @@ local old; old = hookmetamethod(game, "__index", function(self, key)
     end
     return old(self, key)
 end)
-
 
 Library:OnUnload(function()Library.Unloaded=true end)Library:SetWatermark(('Primordial v%s'):format(Settings.Version))local a=Tabs['UI Settings']:AddLeftGroupbox('Menu')local b=a:AddButton({Text='Unload',Func=function()Library:Unload()end,DoubleClick=true,Tooltip='Unload Script'})a:AddButton({Text='Rejoin',Func=function()game:GetService('TeleportService'):TeleportToPlaceInstance(game.PlaceId,game.JobId,Client)end,DoubleClick=true,Tooltip='Rejoin game'})a:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind',{Default='End',NoUI=true,Text='Menu keybind'})Library.ToggleKeybind=Options.MenuKeybind;a:AddToggle('keybindframe',{Text='Keybind Frame',Default=false,Tooltip='Toggles KeybindFrame'})Toggles.keybindframe:OnChanged(function()Library.KeybindFrame.Visible=Toggles.keybindframe.Value end)a:AddToggle('Watermark',{Text='Watermark',Default=false,Tooltip='Toggles Watermark'})Toggles.Watermark:OnChanged(function()Library:SetWatermarkVisibility(Toggles.Watermark.Value)end)Library.ToggleKeybind=Options.MenuKeybind;ThemeManager:SetLibrary(Library)SaveManager:SetLibrary(Library)SaveManager:IgnoreThemeSettings()SaveManager:SetIgnoreIndexes({'MenuKeybind'})ThemeManager:SetFolder('Primordial')SaveManager:SetFolder('Primordial/Games')SaveManager:BuildConfigSection(Tabs['UI Settings'])ThemeManager:ApplyToTab(Tabs['UI Settings'])
