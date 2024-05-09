@@ -128,7 +128,7 @@ local Visuals = {
 }
 
 local Settings = {
-    Version = '1.1.7 | Private',
+    Version = '1.2.0 | public',
     SilentAim = {
         Enabled = false,
         HitBone = 'Head',
@@ -159,9 +159,6 @@ local Settings = {
         Enabled = false,
         Weapons = { "Glock","SMG","Silencer","TacticalShotgun","P90","AUG","Shotgun","RPG","AR","Double-Barrel SG","Flamethrower","Revolver","LMG","AK47","DrumGun","Silencer","GrenadeLauncher", "SilencerAR"},
         Ammo = 1
-    },
-    Misc = {
-        AutoReload = false,
     }
 }
 
