@@ -593,7 +593,7 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
     return namecall(self, ...)
 end)
 
-
+--thanks lunar.vip :money_mouth:
 local old; old = hookmetamethod(game, "__index", function(self, key)
     if not checkcaller() and key == "CFrame" and Client.Character and self == Client.Character:FindFirstChild("HumanoidRootPart") and Settings.Desync.Enabled and Desync["OldPos"] ~= nil and Client.Character:FindFirstChild("Humanoid") and Client.Character.Humanoid.Health > 0 then
         return Desync["OldPos"]
