@@ -1,7 +1,4 @@
-if (not game:IsLoaded()) then game.Loaded:Wait() end
-
-for _, v in pairs(getconnections(game:GetService("ScriptContext").Error)) do v:Disable() end
-for _, v in pairs(getconnections(game:GetService("LogService").MessageOut)) do v:Disable() end
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Bovanlaarhoven/Primordial/main/src/utils/bypass.lua"))()
 
 local Players        = game:GetService('Players')
 local RunService     = game:GetService('RunService')
@@ -19,7 +16,6 @@ local backpack       = Client.Backpack
 local Desync         = {OldPos = nil, newPos = nil}
 local CurrentPing    = {ping = 0}
 local HitBones       = {}
-
 
 for _, v in pairs(Client.Character:GetChildren()) do if v:IsA("BasePart") then table.insert(HitBones, v.Name) end end
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
@@ -534,7 +530,6 @@ RunService.RenderStepped:connect(Update)
 RunService.Heartbeat:Connect(function()
     CurrentPing = tonumber(string.format("%.3f", ping:GetValue()))
     if Settings.Desync.Enabled then 
-        Desync["OldPos"] = Client.Character.HumanoidRootPart.CFrame
         local Desyncmodes = {
             Static = {math.random(Settings.Desync.X.Min, Settings.Desync.X.Max),math.random(Settings.Desync.Y.Min, Settings.Desync.Y.Max),math.random(Settings.Desync.Z.Min, Settings.Desync.Z.Max)},
             Dynamic = {math.sin(tick()) * Settings.Desync.Range, math.sin(tick()) * Settings.Desync.Range, math.cos(tick()) * Settings.Desync.Range},
@@ -542,60 +537,41 @@ RunService.Heartbeat:Connect(function()
             Spin = {math.sin(tick()) * Settings.Desync.Range, 0, math.cos(tick()) * Settings.Desync.Range}
         }
 
-        if Desyncmodes[Settings.Desync.DesyncMode] then
-            Desync["newPos"] = CFrame.new(
-                Client.Character.HumanoidRootPart.Position + Vector3.new(
-                    unpack(Desyncmodes[Settings.Desync.DesyncMode])
-                )
-            )
-        else
-            warn("Invalid desync mode:", Settings.Desync.DesyncMode)
-            return
+        local DesyncMode = Desyncmodes[Settings.Desync.DesyncMode]
+        if DesyncMode then
+            local OldPos = Client.Character.HumanoidRootPart.CFrame
+            local NewPos = CFrame.new(Client.Character.HumanoidRootPart.Position + Vector3.new(unpack(DesyncMode)))
+            Client.Character.HumanoidRootPart.CFrame = NewPos
+            RunService.RenderStepped:Wait()
+            Client.Character.HumanoidRootPart.CFrame = OldPos
         end
-
-        Client.Character.HumanoidRootPart.CFrame = Desync["newPos"]
-
-        RunService.RenderStepped:Wait()
-
-        Client.Character.HumanoidRootPart.CFrame = Desync["OldPos"]
     end
 
     if Settings.Prediction.AutoPrediction then
-        if CurrentPing < 20 then
-            if Settings.Prediction.Prediction > 15.7 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 15.7 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 30 then
-            if Settings.Prediction.Prediction > 15.5 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 15.5 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 40 then
-            if Settings.Prediction.Prediction > 14.5 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 14.5 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 50 then
-            if Settings.Prediction.Prediction > 14.3 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 14.3 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 60 then
-            if Settings.Prediction.Prediction > 14 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 14 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 70 then
-            if Settings.Prediction.Prediction > 13.6 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 13.6 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 80 then
-            if Settings.Prediction.Prediction > 13.3 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 13.3 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 90 then
-            if Settings.Prediction.Prediction > 13 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 13 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 105 then
-            if Settings.Prediction.Prediction > 12.7 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 12.7 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        elseif CurrentPing < 110 then
-            if Settings.Prediction.Prediction > 12.4 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 12.4 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
-        else
-            if Settings.Prediction.Prediction > 12 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value-.1) end
-            if Settings.Prediction.Prediction < 12 then Options.PredictionAmound:SetValue(Options.PredictionAmound.Value+.1) end
+        local pingThresholds = {
+            {ping = 20, prediction = 15.7},
+            {ping = 30, prediction = 15.5},
+            {ping = 40, prediction = 14.5},
+            {ping = 50, prediction = 14.3},
+            {ping = 60, prediction = 14},
+            {ping = 70, prediction = 13.6},
+            {ping = 80, prediction = 13.3},
+            {ping = 90, prediction = 13},
+            {ping = 105, prediction = 12.7},
+            {ping = 110, prediction = 12.4},
+            {ping = math.huge, prediction = 12}
+        }
+        for _, threshold in ipairs(pingThresholds) do
+            if CurrentPing < threshold.ping then
+                if Settings.Prediction.Prediction > threshold.prediction then
+                    Options.PredictionAmound:SetValue(Options.PredictionAmound.Value - 0.1)
+                elseif Settings.Prediction.Prediction < threshold.prediction then
+                    Options.PredictionAmound:SetValue(Options.PredictionAmound.Value + 0.1)
+                end
+                break
+            end
         end
-        wait(.2)
+        wait(0.2)
     end
 
 end)
@@ -621,9 +597,10 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
 end)
 
 
-local old; old = hookmetamethod(game, "__index", function(self, key)
+local old
+old = hookmetamethod(game, "__index", function(self, key)
     if not checkcaller() then
-        if key == "CFrame" and Client.Character and self == Client.Character:FindFirstChild("HumanoidRootPart") and Settings.Desync.Enabled and Desync["OldPos"] ~= nil and Client.Character:FindFirstChild("Humanoid") and Client.Character:FindFirstChild("Humanoid").Health > 0 then
+        if key == "CFrame" and Client.Character and self == Client.Character:FindFirstChild("HumanoidRootPart") and Settings.Desync.Enabled and Desync["OldPos"] ~= nil and Client.Character:FindFirstChild("Humanoid") and Client.Character.Humanoid.Health > 0 then
             return Desync["OldPos"]
         end
     end
