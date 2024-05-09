@@ -597,12 +597,9 @@ local namecall; namecall = hookmetamethod(game, '__namecall', function(self, ...
 end)
 
 
-local old
-old = hookmetamethod(game, "__index", function(self, key)
-    if not checkcaller() then
-        if key == "CFrame" and Client.Character and self == Client.Character:FindFirstChild("HumanoidRootPart") and Settings.Desync.Enabled and Desync["OldPos"] ~= nil and Client.Character:FindFirstChild("Humanoid") and Client.Character.Humanoid.Health > 0 then
-            return Desync["OldPos"]
-        end
+local old; old = hookmetamethod(game, "__index", function(self, key)
+    if not checkcaller() and key == "CFrame" and Client.Character and self == Client.Character:FindFirstChild("HumanoidRootPart") and Settings.Desync.Enabled and Desync["OldPos"] ~= nil and Client.Character:FindFirstChild("Humanoid") and Client.Character.Humanoid.Health > 0 then
+        return Desync["OldPos"]
     end
     return old(self, key)
 end)
